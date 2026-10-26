@@ -1,0 +1,7 @@
+# dati generati: sul sito li pubblica GitHub Actions, in locale li crea aggiorna.bat
+data/data.js
+__pycache__/
+*.pyc
+
+# file temporanei di Claude Code
+.omc/

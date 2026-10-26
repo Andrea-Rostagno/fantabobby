@@ -1,0 +1,67 @@
+name: Aggiorna dati e sito
+
+on:
+  schedule:
+    - cron: "7 5-22 * * *"      # aggiornamento completo ogni ora (orari UTC)
+    - cron: "*/10 10-23 * * *"  # live ogni 10 minuti: scarica solo se c'è una partita in corso
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: aggiorna
+  cancel-in-progress: false
+
+jobs:
+  aggiorna:
+    runs-on: ubuntu-latest
+    outputs:
+      pubblica: ${{ steps.dati.outputs.pubblica }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests beautifulsoup4
+
+      - name: Scarica i dati
+        id: dati
+        run: |
+          if [ "${{ github.event.schedule }}" = "*/10 10-23 * * *" ]; then
+            # il live parte dai dati già pubblicati sul sito
+            curl -fsSL "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/data/data.js" -o data/data.js || rm -f data/data.js
+            python aggiorna.py --live
+          else
+            python aggiorna.py
+          fi
+
+      - name: Salva le giornate concluse
+        run: |
+          git add data/cache
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Dati delle giornate concluse"
+            git push
+          fi
+
+      - if: steps.dati.outputs.pubblica == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  pubblica:
+    needs: aggiorna
+    if: needs.aggiorna.outputs.pubblica == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
