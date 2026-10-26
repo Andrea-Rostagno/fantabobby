@@ -34,6 +34,12 @@ function saveGiornate() {
   store.set("giornate", GIORN);
 }
 
+// modalità ospite: si guarda tutto, non si modifica niente
+function soloLettura() {
+  if (!window.FB_GUEST) return false;
+  toast("Modalità ospite: puoi solo guardare");
+  return true;
+}
 function toast(msg) {
   let t = $("#toast");
   if (!t) { t = document.createElement("div"); t.id = "toast"; document.body.appendChild(t); }
@@ -41,6 +47,7 @@ function toast(msg) {
   clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 3200);
 }
 function toggleCons(id) {
+  if (soloLettura()) return;
   if (gLocked(NEXT)) { toast(`La giornata ${NEXT} è già iniziata: i consigliati sono bloccati.`); return; }
   const S = gSquad(NEXT);
   if (S.ids.includes(id)) { S.ids = S.ids.filter(i => i !== id); S.xi = S.xi.filter(i => i !== id); }
@@ -50,7 +57,7 @@ function toggleCons(id) {
   go(true);
   if (open) openPlayer(id);
 }
-function removeCons(g, id) { if (gLocked(g)) return; const S = gSquad(g); S.ids = S.ids.filter(i => i !== id); S.xi = S.xi.filter(i => i !== id); saveGiornate(); go(true); }
+function removeCons(g, id) { if (soloLettura() || gLocked(g)) return; const S = gSquad(g); S.ids = S.ids.filter(i => i !== id); S.xi = S.xi.filter(i => i !== id); saveGiornate(); go(true); }
 const isCons = id => !!GIORN[NEXT]?.ids?.includes(id);
 const consBtn = (id, big) => { const on = isCons(id); return `<button class="cons-btn ${on ? "on" : ""} ${big ? "big" : ""}" title="${on ? "Togli dai consigliati" : "Aggiungi ai consigliati"} della giornata ${NEXT}" onclick="toggleCons(${id})">👍${big ? (on ? " Nei consigliati" : " Aggiungi ai consigliati") : ""}</button>`; };
 

@@ -359,3 +359,11 @@ table.t{width:100%;border-collapse:separate;border-spacing:0 5px;min-width:900px
 .logout{margin-top:10px;word-break:break-all}
 .logout button{margin-top:4px;padding:4px 12px;border-radius:99px;border:1px solid var(--edge2);color:var(--muted)}
 @media(max-width:600px){.lrow .lb{display:none}.gsum .tot b{font-size:36px}}
+
+/* ---------- modalità ospite: niente comandi di modifica ---------- */
+.guest-btn{padding:11px 16px;border-radius:12px;border:1.5px solid #c9edff;background:linear-gradient(180deg,#7fd0f7,#3aa2e0);font:800 14px Rubik;display:flex;flex-direction:column;align-items:center;gap:1px}
+.guest-btn small{font:500 11px Rubik;opacity:.85}
+body.guest .cons-btn,body.guest .xi-btn,body.guest .xbtn,body.guest .add-btn,body.guest .xi-auto,
+body.guest #rq,body.guest .btn-pink[onclick*="toggleRosa"],body.guest a[onclick*="resetOverrides"],body.guest a[onclick*="setOverride"]{display:none!important}
+body.guest select[onchange*="setModulo"]{pointer-events:none;opacity:.7}
+body.guest .idx[data-edit]{cursor:default}

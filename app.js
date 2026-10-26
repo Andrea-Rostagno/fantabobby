@@ -527,11 +527,12 @@ function loadState() {
   OVR = store.get("ovr", {});
   loadGiornate();
 }
-function addRosa(id) { if (!ROSA.ids.includes(id)) { ROSA.ids.push(id); addToXI(ROSA, id); } ROSA.q = ""; saveSquad("rosa"); go(true); }
-function removeRosa(id) { ROSA.ids = ROSA.ids.filter(i => i !== id); ROSA.xi = ROSA.xi.filter(i => i !== id); saveSquad("rosa"); go(true); }
+function addRosa(id) { if (soloLettura()) return; if (!ROSA.ids.includes(id)) { ROSA.ids.push(id); addToXI(ROSA, id); } ROSA.q = ""; saveSquad("rosa"); go(true); }
+function removeRosa(id) { if (soloLettura()) return; ROSA.ids = ROSA.ids.filter(i => i !== id); ROSA.xi = ROSA.xi.filter(i => i !== id); saveSquad("rosa"); go(true); }
 function toggleRosa(id) { ROSA.ids.includes(id) ? removeRosa(id) : addRosa(id); }
 // titolare <-> panchina; se la linea è piena entra al posto del titolare meno schierabile di quel ruolo
 function toggleXI(k, id) {
+  if (soloLettura()) return;
   if (!editable(k)) return;
   const S = squad(k);
   if (S.xi.includes(id)) S.xi = S.xi.filter(i => i !== id);
@@ -541,8 +542,8 @@ function toggleXI(k, id) {
   }
   saveSquad(k); go(true);
 }
-function setModulo(k, m) { if (!editable(k)) return; const S = squad(k); S.modulo = m; fitXI(S); saveSquad(k); go(true); }
-function applyBest(k, m) { if (!editable(k)) return; const S = squad(k); if (m) S.modulo = m; S.xi = bestXI(S.ids.map(id => BY.get(id)).filter(Boolean), S.modulo).xi.map(p => p.id); saveSquad(k); go(true); }
+function setModulo(k, m) { if (soloLettura() || !editable(k)) return; const S = squad(k); S.modulo = m; fitXI(S); saveSquad(k); go(true); }
+function applyBest(k, m) { if (soloLettura() || !editable(k)) return; const S = squad(k); if (m) S.modulo = m; S.xi = bestXI(S.ids.map(id => BY.get(id)).filter(Boolean), S.modulo).xi.map(p => p.id); saveSquad(k); go(true); }
 const editable = k => k === "rosa" || !gLocked(+k.slice(1));
 function bestXI(players, modulo) {
   const [d, c, a] = modulo.split("-").map(Number), need = { P: 1, D: d, C: c, A: a };
@@ -629,6 +630,7 @@ function openPlayer(id) {
 }
 // modifica manuale della fantamedia attesa: clic sul numero arancione
 function editIdx(el) {
+  if (soloLettura()) return;
   const id = +el.dataset.edit, p = BY.get(id); if (!p) return;
   const inp = document.createElement("input");
   inp.type = "number"; inp.step = "0.1"; inp.min = "1"; inp.max = "20"; inp.className = "idx-edit"; inp.value = f1(p.xfv);
@@ -641,6 +643,7 @@ function editIdx(el) {
   inp.addEventListener("click", e => e.stopPropagation());
 }
 function setOverride(id, val) {
+  if (soloLettura()) return;
   const v = parseFloat(String(val).replace(",", "."));
   const p = BY.get(id);
   if (isNaN(v) || (p && Math.abs(v - p.xfvAuto) < 0.005)) delete OVR[id]; else OVR[id] = +clamp(v, 1, 20).toFixed(2);
@@ -650,7 +653,7 @@ function setOverride(id, val) {
   go(true);
   if (open) openPlayer(id);
 }
-function resetOverrides() { OVR = {}; store.set("ovr", OVR); buildModel(); computePct(2); go(true); }
+function resetOverrides() { if (soloLettura()) return; OVR = {}; store.set("ovr", OVR); buildModel(); computePct(2); go(true); }
 function closeModal() { $("#modal").classList.remove("show"); }
 
 // ================================================================ router ed eventi

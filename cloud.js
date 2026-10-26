@@ -28,6 +28,25 @@
     return data;
   }
 
+  // ospite: legge (senza login) i dati dell'account, non salva niente
+  async function entraOspite() {
+    window.FB_GUEST = true;
+    localStorage.setItem("fd-ospite", "1");
+    document.body.classList.add("guest");
+    window.cloudSave = () => {};
+    const { data, error } = await sb.from("stato").select("dati, aggiornato").order("aggiornato", { ascending: false }).limit(1).maybeSingle();
+    if (error) console.error(error);
+    if (data) { applica(data.dati); ultimoSync = data.aggiornato; }
+    bootApp();
+    aggiungiEsci();
+    document.addEventListener("visibilitychange", async () => {
+      if (document.visibilityState !== "visible") return;
+      const r = await sb.from("stato").select("aggiornato").order("aggiornato", { ascending: false }).limit(1).maybeSingle();
+      if (r.data && ultimoSync && r.data.aggiornato > ultimoSync) location.reload();
+    });
+  }
+  window.fbGuest = () => { $("#login").remove(); entraOspite(); };
+
   async function dopoAccesso() {
     const remoto = await scarica();
     if (remoto) { applica(remoto.dati); ultimoSync = remoto.aggiornato; }
@@ -45,9 +64,14 @@
   function aggiungiEsci() {
     const foot = document.querySelector(".side .foot");
     if (!foot || foot.querySelector(".logout")) return;
-    foot.insertAdjacentHTML("beforeend", `<div class="logout">${esc(user.email)}<br><button onclick="fbLogout()">Esci</button></div>`);
+    const chi = window.FB_GUEST ? "👀 Ospite · sola lettura" : esc(user.email);
+    foot.insertAdjacentHTML("beforeend", `<div class="logout">${chi}<br><button onclick="fbLogout()">Esci</button></div>`);
   }
-  window.fbLogout = async () => { await sb.auth.signOut(); location.reload(); };
+  window.fbLogout = async () => {
+    localStorage.removeItem("fd-ospite");
+    if (!window.FB_GUEST) await sb.auth.signOut();
+    location.reload();
+  };
   // la barra laterale viene ridisegnata a ogni pagina: rimetto il pulsante Esci
   window.addEventListener("hashchange", () => setTimeout(aggiungiEsci, 0));
 
@@ -59,6 +83,7 @@
         <input class="input" type="email" id="lemail" placeholder="Email" autocomplete="username" required>
         <input class="input" type="password" id="lpass" placeholder="Password" autocomplete="current-password" required>
         <button class="btn-pink" type="submit" style="justify-content:center">Entra</button>
+        <button class="guest-btn" type="button" onclick="fbGuest()">👀 Entra come ospite <small>solo per guardare</small></button>
         <p class="tip" id="lmsg" style="text-align:center;color:var(--red);min-height:1em">${esc(msg)}</p>
       </form></div>`);
   }
@@ -71,6 +96,8 @@
 
   sb.auth.getSession().then(({ data }) => {
     user = data.session?.user || null;
-    if (user) dopoAccesso(); else mostraLogin();
+    if (user) dopoAccesso();
+    else if (localStorage.getItem("fd-ospite") === "1") entraOspite();
+    else mostraLogin();
   });
 })();
