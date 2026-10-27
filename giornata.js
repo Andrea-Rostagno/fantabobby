@@ -1,6 +1,6 @@
 "use strict";
-// Per ogni giornata due squadre: la "squadra top" (i consigliati 👍) e "Le Scommesse" 🎲 (giocatori non da prima
-// fascia che possono sorprendere). Si bloccano al primo fischio d'inizio, poi si seguono live e finiscono nello storico.
+// Per ogni giornata due squadre: la "squadra top" (i consigliati 👍) e i "consigliati non scontati" 🎲 (giocatori non
+// da prima fascia che possono sorprendere). Si bloccano al primo fischio d'inizio, poi si seguono live e finiscono nello storico.
 // Usa le variabili globali di app.js (D, P, BY, TEAMS, MATCH, NEXT, LAST, store, ...).
 
 const MAX_CAMBI = 3;   // sostituzioni automatiche dalla panchina, come nel fantacalcio classico
@@ -11,7 +11,7 @@ const nuovaSquadra = () => ({ ids: [], xi: [], modulo: "3-4-3", snap: {} });
 const gSquad = g => (GIORN[g] ??= nuovaSquadra());
 const gScom = g => (gSquad(g).sc ??= nuovaSquadra());
 const squadOf = (g, tipo) => tipo === "sc" ? GIORN[g]?.sc : GIORN[g];
-const TIPI = { top: { nome: "Squadra top", icona: "⭐" }, sc: { nome: "Le Scommesse", icona: "🎲" } };
+const TIPI = { top: { nome: "Squadra top", icona: "⭐" }, sc: { nome: "Consigliati non scontati", icona: "🎲" } };
 
 // la giornata si blocca al fischio d'inizio della prima partita
 function gLockTime(g) {
@@ -26,7 +26,7 @@ function loadGiornate() {
   // consigliati salvati prima che esistessero le giornate
   const old = store.get("cons", null);
   if (old?.length && libera && !GIORN[NEXT]?.ids?.length) { const S = gSquad(NEXT); S.ids = old.filter(id => BY.get(id)); S.ids.forEach(id => addToXI(S, id)); }
-  // la vecchia "La mia rosa" diventa Le Scommesse della prossima giornata
+  // la vecchia "La mia rosa" diventa i consigliati non scontati della prossima giornata
   const rosa = store.get("rosa", null);
   if (rosa?.ids?.length && libera && !GIORN[NEXT]?.sc?.ids?.length) {
     const S = gScom(NEXT); S.ids = rosa.ids.filter(id => BY.get(id)); S.modulo = MODULI.includes(rosa.modulo) ? rosa.modulo : S.modulo;
@@ -85,12 +85,12 @@ function removeFrom(tipo, g, id) {
   saveGiornate(); go(true);
 }
 function addScom(id) { SCQ = ""; if (!GIORN[NEXT]?.sc?.ids?.includes(id)) toggleScom(id); }
-let SCQ = "";   // ricerca nella sezione Le Scommesse
+let SCQ = "";   // ricerca nella sezione consigliati non scontati
 
 const isCons = id => !!GIORN[NEXT]?.ids?.includes(id);
 const isScom = id => !!GIORN[NEXT]?.sc?.ids?.includes(id);
 const consBtn = (id, big) => { const on = isCons(id); return `<button class="cons-btn ${on ? "on" : ""} ${big ? "big" : ""}" title="${on ? "Togli dai consigliati" : "Aggiungi ai consigliati"} della giornata ${NEXT}" onclick="toggleCons(${id})">👍${big ? (on ? " Nei consigliati" : " Aggiungi ai consigliati") : ""}</button>`; };
-const scomBtn = (id, big) => { const on = isScom(id); return `<button class="cons-btn scom ${on ? "on" : ""} ${big ? "big" : ""}" title="${on ? "Togli da Le Scommesse" : "Aggiungi a Le Scommesse"} della giornata ${NEXT}" onclick="toggleScom(${id})">🎲${big ? (on ? " Nelle Scommesse" : " Aggiungi alle Scommesse") : ""}</button>`; };
+const scomBtn = (id, big) => { const on = isScom(id); return `<button class="cons-btn scom ${on ? "on" : ""} ${big ? "big" : ""}" title="${on ? "Togli dai non scontati" : "Aggiungi ai consigliati non scontati"} della giornata ${NEXT}" onclick="toggleScom(${id})">🎲${big ? (on ? " Nei non scontati" : " Aggiungi ai non scontati") : ""}</button>`; };
 
 // ---------------------------------------------------------------- calcolo live
 function liveCalc(g, tipo = "top") {
@@ -220,70 +220,67 @@ function liveBlock(g, tipo, conPartite) {
   </div>`;
 }
 
-// ---------------------------------------------------------------- pagina Giornata: solo la squadra top
-function pageGiornata(arg) {
-  const g = clamp(+arg || defaultGiornata(), 1, 38), locked = gLocked(g), lock = gLockTime(g);
-  const head = title(`⭐ Squadra top della giornata`, locked ? "I migliori consigliati in campo: punteggi aggiornati man mano che escono i voti" : "La formazione dei consigliati: si blocca al primo fischio d'inizio", "") + gnav(g, "giornata");
-  if (locked) return head + liveBlock(g, "top", true) + `<p class="tip" style="text-align:center">Dati aggiornati ${esc(D.aggiornato)} · la pagina si aggiorna da sola · voti fantacalcio.it appena pubblicati · <a href="#consigliati/${g}" style="color:var(--pink)">🎲 Le Scommesse della giornata</a></p>`;
-  const S = GIORN[g];
-  if (!S?.ids?.length) return head + `<div class="panel pad empty">La squadra top della giornata ${g} non è ancora pronta.${g === NEXT ? `<br><a href="#consigliati" style="color:var(--pink)">Prepara i consigliati →</a>` : ""}</div>`;
-  return head + `
-  <div class="gsum">
-    <div><small>Si blocca</small><b>${lockLabel(g)}</b><span class="tip">${lock ? "tra " + fmtCountdown(lock - Date.now()) : ""}</span></div>
-    <div><small>Consigliati</small><b>${S.ids.length}</b><span class="tip">titolari ${S.xi.length}/11</span></div>
-    <div><small>Stima totale</small><b style="color:var(--orange)">${f1(sum(S.xi.map(id => BY.get(id)?.xfv || 0)))}</b><span class="tip">somma FM attese dei titolari</span></div>
-  </div>
-  <div style="max-width:760px;margin:0 auto">${squadPitch(S, "g" + g, false)}
-    <p style="text-align:center;margin-top:16px"><a href="#consigliati/${g}" class="xi-auto alt" style="display:inline-block">✏️ Modifica nei Consigliati</a></p></div>`;
+// ---------------------------------------------------------------- pagina Consigliati: le due formazioni + la lista
+// lista in sola lettura di tutti i consigliati della giornata (ospiti e giornate già giocate)
+function consList(g) {
+  const S = GIORN[g] || nuovaSquadra(), C = S.sc || nuovaSquadra();
+  const tutti = [...new Set([...S.ids, ...C.ids])].map(id => BY.get(id)).filter(Boolean)
+    .sort((a, b) => "PDCA".indexOf(a.R) - "PDCA".indexOf(b.R) || b.schRaw - a.schRaw);
+  const row = p => {
+    const dove = [S.ids.includes(p.id) ? `<span class="ctag top">⭐ ${S.xi.includes(p.id) ? "titolare" : "riserva"}</span>` : "", C.ids.includes(p.id) ? `<span class="ctag sc">🎲 ${C.xi.includes(p.id) ? "titolare" : "riserva"}</span>` : ""].join("");
+    return `<div class="r" data-pid="${p.id}"><span class="role ${p.R}" style="width:24px;height:24px;font-size:11px">${p.R}</span>${av(p, 34)}<div style="flex:1;min-width:0"><b>${esc(p.nome)}</b> ${fascia(p.fascia)} <span class="tip">${esc(tname(p.sq))}${p.nextOpp ? ` · ${p.nextOpp.home ? "vs" : "@"} ${esc(tname(p.nextOpp.opp))}` : ""}</span><div>${dove}</div></div><span class="chip ${lvl(p.tit)}">${p.tit ?? 0}%</span>${idx(p, 1)}</div>`;
+  };
+  return tutti.length ? `<div class="rows">${tutti.map(row).join("")}</div>` : '<div class="empty">Nessun consigliato per questa giornata.</div>';
 }
-
-// ---------------------------------------------------------------- pagina Consigliati: lista + Le Scommesse
+// una formazione non ancora bloccata
+function formazione(g, tipo, ed) {
+  const S = squadOf(g, tipo), k = (tipo === "sc" ? "s" : "g") + g;
+  const titolo = tipo === "sc" ? "🎲 CONSIGLIATI NON SCONTATI" : "⭐ SQUADRA TOP";
+  const body = S?.ids?.length ? squadPitch(S, k, ed) : `<div class="empty">Formazione non ancora pronta.</div>`;
+  return `<div class="panel pad form-panel ${tipo}"><h2 class="form-title ${tipo}">${titolo}</h2>${body}</div>`;
+}
 function pageConsigliati(arg) {
-  const g = clamp(+arg || NEXT, 1, 38), locked = gLocked(g), lock = gLockTime(g);
-  const head = title("Consigliati", locked ? "Giornata iniziata: squadre bloccate" : "Prepara la squadra top e Le Scommesse: si bloccano al primo fischio d'inizio", "👍") + gnav(g, "consigliati");
+  const g = clamp(+arg || defaultGiornata(), 1, 38), locked = gLocked(g), lock = gLockTime(g);
+  const ed = g === NEXT && !locked && !window.FB_GUEST;
+  const head = title("Consigliati", locked ? "Giornata iniziata: formazioni bloccate, punteggi aggiornati man mano che escono i voti" : "Le due formazioni della giornata: si bloccano al primo fischio d'inizio", "👍") + gnav(g, "consigliati");
+  const S = GIORN[g], C = S?.sc;
   if (locked) {
-    const Lt = liveCalc(g, "top");
     return head + `
-    <div class="panel pad" style="margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-      <b style="font-size:17px">⭐ Squadra top</b><span class="tip">${Lt ? `${f1(Lt.totale)} punti · stima ${f1(Lt.stima)}` : "nessun consigliato"}</span><span class="spacer"></span>
-      <a href="#giornata/${g}" class="xi-auto alt">Vedi in campo →</a></div>
-    <div class="h2">🎲 Le Scommesse della giornata ${g}</div>${liveBlock(g, "sc", false)}`;
+    <h2 class="form-title big top">⭐ SQUADRA TOP</h2>${liveBlock(g, "top", false)}
+    <h2 class="form-title big sc">🎲 CONSIGLIATI NON SCONTATI</h2>${liveBlock(g, "sc", true)}
+    <p class="tip" style="text-align:center">Dati aggiornati ${esc(D.aggiornato)} · la pagina si aggiorna da sola · voti fantacalcio.it appena pubblicati</p>`;
   }
-  if (g !== NEXT && !GIORN[g]?.ids?.length && !GIORN[g]?.sc?.ids?.length) return head + `<div class="panel pad empty">Si preparano le squadre della prossima giornata (${NEXT}).<br><a href="#consigliati/${NEXT}" style="color:var(--pink)">Vai alla giornata ${NEXT}</a></div>`;
-  const S = gSquad(g), C = gScom(g), ed = g === NEXT;
-  const stima = X => f1(sum(X.xi.map(id => BY.get(id)?.xfv || 0)));
-  const results = SCQ.length >= 2 ? P.filter(p => p.nome.toLowerCase().includes(SCQ) && !C.ids.includes(p.id)).slice(0, 30) : [];
-  // suggerimenti: non da prima fascia, titolari probabili, fantamedia attesa alta
-  const sugg = ed ? P.filter(p => p.tit >= 65 && p.fascia !== "Top" && p.fascia !== "SemiTop" && !C.ids.includes(p.id)).sort((a, b) => b.xfv - a.xfv).slice(0, 10) : [];
-  return head + `
+  if (!ed && !S?.ids?.length && !C?.ids?.length) return head + `<div class="panel pad empty">Le formazioni della giornata ${g} non sono ancora pronte.${g !== NEXT ? `<br><a href="#consigliati/${NEXT}" style="color:var(--pink)">Vai alla giornata ${NEXT}</a>` : ""}</div>`;
+  const stima = X => X ? f1(sum(X.xi.map(id => BY.get(id)?.xfv || 0))) : "–";
+  const riepilogo = `
   <div class="gsum">
     <div><small>Si blocca</small><b>${lockLabel(g)}</b><span class="tip">${lock ? "tra " + fmtCountdown(lock - Date.now()) : ""}</span></div>
-    <div><small>⭐ Squadra top</small><b>${S.ids.length}</b><span class="tip">titolari ${S.xi.length}/11 · stima ${stima(S)}</span></div>
-    <div><small>🎲 Le Scommesse</small><b>${C.ids.length}</b><span class="tip">titolari ${C.xi.length}/11 · stima ${stima(C)}</span></div>
-  </div>
+    <div><small>⭐ Squadra top</small><b>${S?.ids?.length || 0}</b><span class="tip">titolari ${S?.xi?.length || 0}/11 · stima ${stima(S)}</span></div>
+    <div><small>🎲 Non scontati</small><b>${C?.ids?.length || 0}</b><span class="tip">titolari ${C?.xi?.length || 0}/11 · stima ${stima(C)}</span></div>
+  </div>`;
+  const campi = `<div class="grid form-grid">${formazione(g, "top", ed)}${formazione(g, "sc", ed)}</div>`;
+  if (!ed) return head + riepilogo + campi + `<div class="panel pad" style="margin-top:22px"><h3>👍 Tutti i consigliati della giornata</h3>${consList(g)}</div>`;
 
-  <div class="panel pad" style="margin-bottom:22px">
-    <h3>👍 Consigliati · squadra top (${S.ids.length})
-      <span class="tip" style="text-transform:none">aggiungili con 👍 da Probabili, Schierabilità o Listone</span><span class="spacer"></span>
-      <a href="#giornata/${g}" class="xi-auto alt" style="text-transform:none;font-size:12px;padding:7px 12px">⭐ Vedi in campo</a></h3>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
-      <select class="input" onchange="setModulo('g${g}',this.value)">${MODULI.map(m => `<option ${m === S.modulo ? "selected" : ""}>${m}</option>`).join("")}</select>
-      ${S.ids.length >= 11 ? `<button class="xi-auto" onclick="applyBest('g${g}')">⚡ Migliori 11</button>` : ""}
+  // modifica: solo con l'account e prima del fischio d'inizio
+  const T = gSquad(g), X = gScom(g);
+  const results = SCQ.length >= 2 ? P.filter(p => p.nome.toLowerCase().includes(SCQ) && !X.ids.includes(p.id)).slice(0, 30) : [];
+  // suggerimenti: non da prima fascia, titolari probabili, indice alto
+  const sugg = P.filter(p => p.tit >= 65 && !p.riserva && p.fascia !== "Top" && p.fascia !== "SemiTop" && !X.ids.includes(p.id)).sort((a, b) => b.schRaw - a.schRaw).slice(0, 10);
+  return head + riepilogo + campi + `
+  <div class="h2" style="margin-top:26px">👍 Tutti i consigliati</div>
+  <div class="grid form-grid">
+    <div class="panel pad">
+      <h3>⭐ Squadra top (${T.ids.length})</h3>
+      <p class="tip" style="margin-top:-6px">Aggiungili con 👍 da Probabili, Schierabilità o Listone.</p>
+      ${T.ids.length ? squadList(T, "g" + g, g, "top") : '<div class="empty">Nessun consigliato. Vai sulle <a href="#probabili" style="color:var(--pink)">Probabili</a> e premi 👍.</div>'}
     </div>
-    ${S.ids.length ? squadList(S, "g" + g, g, "top") : '<div class="empty">Nessun consigliato. Vai sulle <a href="#probabili" style="color:var(--pink)">Probabili</a> e premi 👍.</div>'}
-  </div>
-
-  <div class="panel pad scom-panel">
-    <h3>🎲 Le Scommesse della giornata (${C.ids.length})</h3>
-    <p class="tip" style="margin-top:-6px">Giocatori non da prima fascia che possono sorprendere. Aggiungili da qui, con 🎲 nel Listone o dalla scheda del giocatore.</p>
-    <div class="grid split" style="--a:1fr;--b:1.1fr">
-      <div>
-        ${ed ? `<input class="input" id="scq" placeholder="Aggiungi una scommessa…" value="${esc(SCQ)}" oninput="SCQ=this.value.toLowerCase();go(true)" style="width:100%">
-        ${results.length ? `<div class="sel-list">${results.map(p => `<div onclick="addScom(${p.id})">${av(p, 30)} <b>${esc(p.nome)}</b> ${fascia(p.fascia)} <span class="muted">${esc(tname(p.sq))}</span><span class="spacer"></span>${idx(p, 1)}</div>`).join("")}</div>` : ""}
-        ${sugg.length ? `<div class="tip" style="margin:12px 0 6px">💡 Suggerite: titolari probabili, non Top, con fantamedia attesa alta</div><div class="sugg">${sugg.map(p => `<button class="sugg-chip" onclick="addScom(${p.id})" title="${esc(tname(p.sq))}">${av(p, 22, false)} ${esc(p.nome)} <b>${f1(p.xfv)}</b> +</button>`).join("")}</div>` : ""}` : ""}
-        <div style="margin-top:12px">${C.ids.length ? squadList(C, "s" + g, g, "sc") : '<div class="empty">Ancora nessuna scommessa.</div>'}</div>
-      </div>
-      <div>${squadPitch(C, "s" + g, ed)}</div>
+    <div class="panel pad scom-panel">
+      <h3>🎲 Consigliati non scontati (${X.ids.length})</h3>
+      <p class="tip" style="margin-top:-6px">Giocatori non da prima fascia che possono sorprendere. Aggiungili da qui, con 🎲 nel Listone o dalla scheda del giocatore.</p>
+      <input class="input" id="scq" placeholder="Aggiungi un giocatore…" value="${esc(SCQ)}" oninput="SCQ=this.value.toLowerCase();go(true)" style="width:100%">
+      ${results.length ? `<div class="sel-list">${results.map(p => `<div onclick="addScom(${p.id})">${av(p, 30)} <b>${esc(p.nome)}</b> ${fascia(p.fascia)} <span class="muted">${esc(tname(p.sq))}</span><span class="spacer"></span>${idx(p, 1)}</div>`).join("")}</div>` : ""}
+      ${sugg.length ? `<div class="tip" style="margin:12px 0 6px">💡 Suggeriti: titolari probabili, non Top, con indice alto</div><div class="sugg">${sugg.map(p => `<button class="sugg-chip" onclick="addScom(${p.id})" title="${esc(tname(p.sq))}">${av(p, 22, false)} ${esc(p.nome)} <b>${f1(p.xfv)}</b> +</button>`).join("")}</div>` : ""}
+      <div style="margin-top:12px">${X.ids.length ? squadList(X, "s" + g, g, "sc") : '<div class="empty">Ancora nessun giocatore.</div>'}</div>
     </div>
   </div>`;
 }
@@ -296,7 +293,7 @@ function pageStorico() {
   const done = rows.filter(conclusa);
   const mediaOf = k => { const v = done.map(x => x[k]?.totale).filter(t => t != null); return v.length ? avg(v) : null; };
   const best = done.filter(x => x.L).sort((a, b) => b.L.totale - a.L.totale)[0];
-  // grafico: squadra top, Le Scommesse e stima della squadra top
+  // grafico: squadra top, non scontati e stima della squadra top
   const ch = done.slice().reverse();
   let chart = "";
   if (ch.length >= 2) {
@@ -304,21 +301,21 @@ function pageStorico() {
     const X = i => 30 + i * (W - 50) / (ch.length - 1), Y = v => 10 + (1 - (v - mn) / (mx - mn)) * (H - 35);
     const line = (get, col, dash) => { const pts = ch.map((x, i) => [i, get(x)]).filter(([, v]) => v != null); return `<path d="${pts.map(([i, v], j) => `${j ? "L" : "M"}${X(i)},${Y(v)}`).join(" ")}" fill="none" stroke="${col}" stroke-width="2.5" ${dash ? 'stroke-dasharray="5 5"' : ""}/>` + pts.map(([i, v]) => `<circle cx="${X(i)}" cy="${Y(v)}" r="4" fill="${col}"><title>G${ch[i].g}: ${f1(v)}</title></circle>`).join(""); };
     chart = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">${ch.map((x, i) => `<text x="${X(i)}" y="${H - 6}" fill="#b4a9e6" font-size="11" text-anchor="middle">G${x.g}</text>`).join("")}${line(x => x.L?.stima, "#ff8a1c", 1)}${line(x => x.C?.totale, "#7fd0f7")}${line(x => x.L?.totale, "#5dff9b")}</svg>
-      <div class="tip" style="text-align:center"><span style="color:#5dff9b">━ ⭐ squadra top</span> · <span style="color:#7fd0f7">━ 🎲 Le Scommesse</span> · <span style="color:#ff8a1c">┅ stima squadra top</span></div>`;
+      <div class="tip" style="text-align:center"><span style="color:#5dff9b">━ ⭐ squadra top</span> · <span style="color:#7fd0f7">━ 🎲 non scontati</span> · <span style="color:#ff8a1c">┅ stima squadra top</span></div>`;
   }
   const cell = (L, lbl, cmp) => L ? `<div class="hv"><small>${lbl}</small><b style="color:${cmp == null ? "#fff" : L.totale >= cmp ? "var(--green)" : "var(--red)"}">${f1(L.totale)}</b></div>` : `<div class="hv"><small>${lbl}</small>–</div>`;
-  return title("Storico", "Come sono andate la squadra top e Le Scommesse giornata per giornata", "📜") + `
+  return title("Storico", "Come sono andate la squadra top e i consigliati non scontati giornata per giornata", "📜") + `
   <div class="gsum">
     <div><small>Giornate giocate</small><b>${done.length}</b></div>
     <div><small>Media ⭐ squadra top</small><b>${f1(mediaOf("L"))}</b></div>
-    <div><small>Media 🎲 Le Scommesse</small><b style="color:#7fd0f7">${f1(mediaOf("C"))}</b></div>
+    <div><small>Media 🎲 Non scontati</small><b style="color:#7fd0f7">${f1(mediaOf("C"))}</b></div>
     <div><small>Miglior giornata</small><b style="color:var(--cyan)">${best ? f1(best.L.totale) : "–"}</b><span class="tip">${best ? "giornata " + best.g : ""}</span></div>
   </div>
   ${chart ? `<div class="panel pad" style="margin-bottom:16px">${chart}</div>` : ""}
   <div class="rows">${rows.map(({ g, L, C }) => `<div class="r hist">
-      <a class="hg" href="#giornata/${g}">G${g}</a>
+      <a class="hg" href="#consigliati/${g}">G${g}</a>
       <div style="flex:1;min-width:0"><div>${conclusa({ L, C }) ? "✅ Conclusa" : "🔴 In corso"}${L ? ` · ${esc(L.S.modulo)} · ${L.S.ids.length} consigliati` : ""}</div><div class="tip">${L?.mvp ? `⭐ ${esc(L.mvp.nome)} ${f1(L.mvp.fv)}` : ""}${C?.mvp ? ` · 🎲 ${esc(C.mvp.nome)} ${f1(C.mvp.fv)}` : ""}</div>
-        <div class="tip"><a href="#giornata/${g}" style="color:var(--pink)">⭐ squadra top</a> · <a href="#consigliati/${g}" style="color:#7fd0f7">🎲 Le Scommesse</a></div></div>
+        <div class="tip"><a href="#consigliati/${g}" style="color:var(--pink)">⭐ squadra top e 🎲 non scontati</a></div></div>
       <div class="hv"><small>stima</small>${L ? f1(L.stima) : "–"}</div>
       ${cell(L, "⭐ top", L?.stima)}${cell(C, "🎲 scomm.", C?.stima)}</div>`).join("") || '<div class="panel pad empty">Ancora niente: prepara i consigliati della prossima giornata e, quando sarà iniziata, la trovi qui.</div>'}</div>`;
 }
@@ -335,7 +332,7 @@ function startAutoRefresh() {
   }, 5 * 60 * 1000);
   // il blocco della giornata scatta anche senza nuovi dati
   setInterval(() => {
-    const live = location.hash.startsWith("#giornata") || location.hash.startsWith("#consigliati");
+    const live = location.hash.startsWith("#consigliati");
     if (live && !document.activeElement?.matches?.("input,select") && !$("#modal").classList.contains("show")) go(true);
   }, 60 * 1000);
 }

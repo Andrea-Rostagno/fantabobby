@@ -103,7 +103,14 @@ function buildModel() {
     p.xfvAuto = +clamp(base + p.adj, 4, 11).toFixed(2);
     p.manual = OVR[p.id] != null;
     p.xfv = p.manual ? OVR[p.id] : p.xfvAuto;
-    p.schRaw = p.tit ? (p.tit / 100) * p.xfv : 0;
+    // quanto spesso prende il voto: voti presi sulle partite giocate dalla sua squadra (con poche partite si resta prudenti)
+    const giocate = TEAMS[p.sq]?.res.length || 0;
+    p.votoPct = giocate ? Math.round(100 * clamp((p.pv + 1) / (giocate + 2), 0, 1)) : null;
+    const vot = (p.votoPct ?? 50) / 100;
+    // probabilità di avere un voto: il titolare quasi sempre lo prende, la riserva solo se di solito entra e gioca
+    p.riserva = !!p.prob && !p.prob.starter;
+    p.pVoto = !p.tit ? 0 : (p.tit / 100) * (p.riserva ? 0.85 * (0.3 + 0.7 * vot) : 0.85 + 0.15 * vot);
+    p.schRaw = p.pVoto * p.xfv;
   }
   for (const R of "PDCA") {
     const pool = P.filter(p => p.R === R && p.tit > 0).map(p => p.schRaw).sort((a, b) => a - b);
@@ -259,7 +266,7 @@ function lineChart(p) {
 
 // ================================================================ navigazione
 const PAGES = [
-  ["giornata", "🔴", "Giornata"], ["consigliati", "👍", "Consigliati"], ["storico", "📜", "Storico"], ["probabili", "📋", "Probabili"], ["schierabilita", "⭐", "Schierabilità"], ["listone", "🗂️", "Listone"],
+  ["consigliati", "👍", "Consigliati"], ["storico", "📜", "Storico"], ["probabili", "📋", "Probabili"], ["schierabilita", "⭐", "Schierabilità"], ["listone", "🗂️", "Listone"],
   ["centro", "📊", "Centro Dati"], ["seriea", "🏆", "Serie A"], ["squadre", "🛡️", "Squadre"], ["indisponibili", "🚑", "Indisponibili"],
 ];
 function renderNav(cur) {
@@ -315,18 +322,19 @@ let SCH = store.get("sch", { R: "A", all: false });
 function setSchR(R) { SCH.R = R || "A"; store.set("sch", SCH); go(); }
 function pageSchierabilita() {
   const rows = P.filter(p => p.R === SCH.R && p.tit != null && (p.tit > 0 || SCH.all)).sort((a, b) => b.sch - a.sch || b.xfv - a.xfv);
-  return title("Indice di Schierabilità", `Giornata ${NEXT} · titolarità × fantamedia attesa contro l'avversario`, "⭐") + `
+  return title("Indice di Schierabilità", `Giornata ${NEXT} · probabilità di prendere il voto × fantamedia attesa contro l'avversario`, "⭐") + `
   <div style="display:flex;justify-content:center;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:14px">${ROLEBTN(SCH.R, "setSchR", false)}
     <label class="tip"><input type="checkbox" ${SCH.all ? "checked" : ""} onchange="SCH.all=this.checked;store.set('sch',SCH);go()"> anche fuori lista</label></div>
-  <div class="twrap"><table class="t"><thead><tr><th>Giocatore</th><th>Avversario</th><th>Titolarità</th><th>FM stagione</th><th>Ultime 3</th><th>Fattore partita</th><th>FM attesa</th><th>Indice</th><th></th></tr></thead><tbody>
+  <div class="twrap"><table class="t"><thead><tr><th>Giocatore</th><th>Avversario</th><th>Titolarità</th><th>Voti presi</th><th>FM stagione</th><th>Ultime 3</th><th>Fattore partita</th><th>FM attesa</th><th>Indice</th><th></th></tr></thead><tbody>
   ${rows.map((p, i) => `<tr data-pid="${p.id}"><td><div class="pn"><span class="dim num" style="width:20px">${i + 1}</span>${av(p, 38)}<div><small>${esc(tname(p.sq))}</small><b>${esc(p.nome)} ${p.flag ? `<span style="color:var(--red)" title="${esc(p.flag.nota)}">●</span>` : ""}</b></div>${fascia(p.fascia)}</div></td>
     <td>${p.nextOpp ? `<span class="tname">${p.nextOpp.home ? "vs" : "@"} ${crest(p.nextOpp.opp, 20)} ${esc(tname(p.nextOpp.opp))}</span>` : "–"}</td>
-    <td><div style="display:flex;align-items:center;gap:8px;justify-content:center"><div class="pbar ${tlvl(p.tit)}"><i style="width:${p.tit}%"></i></div><b>${p.tit}%</b></div></td>
+    <td><div style="display:flex;align-items:center;gap:8px;justify-content:center"><div class="pbar ${tlvl(p.tit)}"><i style="width:${p.tit}%"></i></div><b>${p.tit}%</b>${p.riserva ? '<span class="chip lo" title="Riserva nella probabile formazione">RIS</span>' : ""}</div></td>
+    <td class="num" title="Partite con voto sulle partite giocate dalla squadra">${p.votoPct == null ? "–" : `<span style="color:${p.votoPct >= 80 ? "var(--green)" : p.votoPct >= 50 ? "var(--orange)" : "var(--red)"}">${p.votoPct}%</span>`}</td>
     <td class="num">${f2(p.fm)}</td><td>${p.last3.map(chipFv).join(" ")}</td>
     <td class="num" style="color:${p.adj > 0.05 ? "var(--green)" : p.adj < -0.05 ? "var(--red)" : "var(--muted)"}">${p.adj > 0 ? "+" : ""}${f2(p.adj)}</td>
-    <td>${idx(p)}</td><td><span class="chip ${lvl(p.sch)}" style="font-size:14px;height:28px;min-width:42px">${p.sch}</span></td><td>${stars(p.stars)} ${consBtn(p.id)}</td></tr>`).join("") || `<tr><td colspan="9" class="empty">Nessun giocatore</td></tr>`}
+    <td>${idx(p)}</td><td><span class="chip ${lvl(p.sch)}" style="font-size:14px;height:28px;min-width:42px">${p.sch}</span></td><td>${stars(p.stars)} ${consBtn(p.id)}</td></tr>`).join("") || `<tr><td colspan="10" class="empty">Nessun giocatore</td></tr>`}
   </tbody></table></div>
-  <p class="tip">FM attesa = 65% fantamedia stagionale (con poche presenze avvicinata alla media del ruolo) + 35% media delle ultime 3 giocate, corretta per gol fatti/subiti dall'avversario e fattore campo. Indice 0-100 = percentile nel ruolo di titolarità × FM attesa.</p>`;
+  <p class="tip">FM attesa = 65% fantamedia stagionale (con poche presenze avvicinata alla media del ruolo) + 35% media delle ultime 3 giocate, corretta per gol fatti/subiti dall'avversario e fattore campo. Indice 0-100 = percentile nel ruolo di (probabilità di prendere il voto × FM attesa). La probabilità parte dalla titolarità: un titolare la tiene quasi intera, una riserva (RIS) perde molto e ancora di più se in stagione prende di rado il voto (colonna "Voti presi").</p>`;
 }
 
 // ---- listone
@@ -501,7 +509,7 @@ function pageIndisponibili() {
 // ---- squadre di giornata
 const MODULI = ["3-4-3", "3-5-2", "4-3-3", "4-4-2", "4-5-1", "5-3-2", "5-4-1"];
 const needOf = modulo => { const [d, c, a] = modulo.split("-").map(Number); return { P: 1, D: d, C: c, A: a }; };
-// una "squadra" è { ids, xi, modulo }: "g9" = squadra top della giornata 9, "s9" = Le Scommesse della giornata 9
+// una "squadra" è { ids, xi, modulo }: "g9" = squadra top della giornata 9, "s9" = consigliati non scontati della giornata 9
 const squad = k => k[0] === "s" ? gScom(+k.slice(1)) : gSquad(+k.slice(1));
 const saveSquad = () => saveGiornate();
 function addToXI(S, id) {
@@ -567,6 +575,7 @@ function openPlayer(id) {
       </div>
       <div class="calc"><b>Come nasce ${f2(p.xfvAuto)}:</b> fantamedia ${f2(p.fm)} su ${p.pv} presenze, avvicinata alla media del ruolo → ${f2((p.fm * p.pv + ({ P: 5.6, D: 5.9, C: 6.0, A: 6.2 })[p.R] * 3) / (p.pv + 3))}; forma ultime 3: ${f2(p.formAvg)}; partita ${p.nextOpp ? `${p.nextOpp.home ? "in casa" : "in trasferta"} con ${esc(tname(p.nextOpp.opp))}` : "–"}: ${p.adj > 0 ? "+" : ""}${f2(p.adj)}.
         ${p.manual ? `<br><span style="color:var(--orange)">Ora usi il valore manuale ${f2(p.xfv)}.</span> <a href="javascript:void 0" onclick="setOverride(${p.id},'')" style="color:var(--pink);font-weight:700">Ripristina automatico</a>` : `<br><span class="tip">Clic sul numero arancione per metterlo a mano.</span>`}</div>
+      ${p.tit ? `<div class="calc"><b>Indice ${p.sch}:</b> titolarità ${p.tit}% da ${p.riserva ? "<b style=\"color:var(--red)\">riserva</b>" : "titolare"}, voto preso nel ${p.votoPct ?? "–"}% delle partite della squadra → probabilità di avere il voto ${Math.round(p.pVoto * 100)}%, × FM attesa ${f2(p.xfv)}, confrontato con gli altri ${ROLES[p.R].toLowerCase()}.</div>` : ""}
       <h3 style="margin:20px 0 4px;font-size:14px">📈 Andamento fantavoti</h3>${lineChart(p)}
       ${p.ballot ? `<h3 style="margin:14px 0 6px;font-size:14px">⚔️ Ballottaggio</h3>${ballot(p.ballot)}` : ""}
       ${t.next?.length ? `<h3 style="margin:14px 0 6px;font-size:14px">📅 Prossime avversarie</h3><div style="display:flex;gap:6px;flex-wrap:wrap">${t.next.map(n => `<span class="chip ${TEAMS[n.opp]?.pos <= 6 ? "lo" : TEAMS[n.opp]?.pos <= 13 ? "mid" : "hi"}" style="height:30px;padding:0 9px;gap:5px;display:inline-flex">${n.home ? "" : "@"}${crest(n.opp, 18)} ${tshort(n.opp)}</span>`).join("")}</div>` : ""}
@@ -614,9 +623,9 @@ function closeModal() { $("#modal").classList.remove("show"); }
 function go(keep) {
   const fid = keep && document.activeElement?.id, pos = fid && document.activeElement.selectionStart, y = window.scrollY;
   let [page, arg] = (location.hash.slice(1) || "probabili").split("/");
-  if (page === "rosa") page = "consigliati";   // vecchio nome della pagina
+  if (page === "rosa" || page === "giornata") page = "consigliati";   // pagine unite in Consigliati
   renderNav(PAGES.some(x => x[0] === page) ? page : "probabili");
-  const V = { giornata: () => pageGiornata(arg), storico: pageStorico, probabili: () => pageProbabili(arg), schierabilita: pageSchierabilita, listone: pageListone, centro: pageCentro, seriea: pageSerieA, squadre: () => pageSquadre(arg), indisponibili: pageIndisponibili, consigliati: () => pageConsigliati(arg), rosa: () => pageConsigliati(arg) }[page] || (() => pageProbabili(arg));
+  const V = { storico: pageStorico, probabili: () => pageProbabili(arg), schierabilita: pageSchierabilita, listone: pageListone, centro: pageCentro, seriea: pageSerieA, squadre: () => pageSquadre(arg), indisponibili: pageIndisponibili, consigliati: () => pageConsigliati(arg) }[page] || (() => pageProbabili(arg));
   $("#view").innerHTML = V();
   if (fid) { const el = document.getElementById(fid); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch {} } }
   window.scrollTo(0, keep ? y : 0);

@@ -12,11 +12,10 @@ Serve Python con `requests` e `beautifulsoup4` (`pip install requests beautifuls
 ## Sezioni
 | Sezione | Cosa c'è |
 |---|---|
-| Giornata | la ⭐ squadra top della giornata (titolari e riserve). Dal primo fischio d'inizio: fantavoti, bonus, sostituzioni automatiche (max 3), totale, proiezione e formazione ideale |
-| Consigliati | la lista dei consigliati (👍) con titolari e panchina della squadra top, e 🎲 Le Scommesse: giocatori non da prima fascia che possono sorprendere, con la loro formazione. Tutto si blocca al primo fischio d'inizio |
-| Storico | punteggio di ogni giornata della squadra top e de Le Scommesse, contro la stima pre-giornata, con grafico |
+| Consigliati | le due formazioni della giornata, ⭐ SQUADRA TOP e 🎲 CONSIGLIATI NON SCONTATI (giocatori non da prima fascia che possono sorprendere), con sotto la lista di tutti i consigliati. Si bloccano al primo fischio d'inizio, poi: fantavoti, bonus, sostituzioni automatiche (max 3), totale, proiezione e formazione ideale. Gli ospiti vedono solo formazioni e lista |
+| Storico | punteggio di ogni giornata della squadra top e dei consigliati non scontati, contro la stima pre-giornata, con grafico |
 | Probabili | i due campi con le percentuali di titolarità, la colonna centrale con l'indice, panchina, ballottaggi, indisponibili, analisi e pronostico 1X2 |
-| Schierabilità | classifica per ruolo: titolarità, avversario, ultime 3, fattore partita, fantamedia attesa, indice e stelle |
+| Schierabilità | classifica per ruolo: titolarità (con riserve penalizzate), voti presi in stagione, avversario, ultime 3, fattore partita, fantamedia attesa, indice e stelle |
 | Listone | tutti i giocatori con filtri per ruolo e squadra e colonne ordinabili; ☆ per aggiungerli alla rosa |
 | Centro Dati | statistiche ricalcolate dai voti di ogni giornata: intervallo di giornate, casa/trasferta, presenze minime, squadre |
 | Serie A | classifica, calendario, risultati, marcatori e migliori fantavoti di ogni partita |
