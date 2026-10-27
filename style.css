@@ -364,6 +364,19 @@ table.t{width:100%;border-collapse:separate;border-spacing:0 5px;min-width:900px
 .guest-btn{padding:11px 16px;border-radius:12px;border:1.5px solid #c9edff;background:linear-gradient(180deg,#7fd0f7,#3aa2e0);font:800 14px Rubik;display:flex;flex-direction:column;align-items:center;gap:1px}
 .guest-btn small{font:500 11px Rubik;opacity:.85}
 body.guest .cons-btn,body.guest .xi-btn,body.guest .xbtn,body.guest .add-btn,body.guest .xi-auto,
-body.guest #rq,body.guest .btn-pink[onclick*="toggleRosa"],body.guest a[onclick*="resetOverrides"],body.guest a[onclick*="setOverride"]{display:none!important}
+body.guest #scq,body.guest .sugg,body.guest .sugg-chip,body.guest a[onclick*="resetOverrides"],body.guest a[onclick*="setOverride"]{display:none!important}
 body.guest select[onchange*="setModulo"]{pointer-events:none;opacity:.7}
 body.guest .idx[data-edit]{cursor:default}
+
+/* ---------- Le Scommesse ---------- */
+.cons-btn.scom.on{background:linear-gradient(180deg,#ffd166,#f5a524);border-color:#fff3c4;box-shadow:0 0 10px rgba(255,209,102,.6)}
+.cons-btn.scom.big{background:linear-gradient(180deg,#ffd166,#f08c1a);border-color:#fff3c4;color:#3a2200}
+.scom-panel{border-color:rgba(255,209,102,.55);box-shadow:0 0 0 1px rgba(0,0,0,.25),0 12px 30px rgba(5,0,25,.45),0 0 24px rgba(255,209,102,.15)}
+.scom-panel h3{color:#ffd166}
+.gsum .tot.sc{background:linear-gradient(165deg,#ffd166,#f08c1a);border-color:#fff3c4}
+.gsum .tot.sc b,.gsum .tot.sc small{color:#3a2200;text-shadow:none}
+.sugg{display:flex;flex-wrap:wrap;gap:6px}
+.sugg-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 4px;border-radius:99px;background:rgba(255,209,102,.12);border:1.5px solid rgba(255,209,102,.45);font:600 12.5px Rubik}
+.sugg-chip:hover{background:rgba(255,209,102,.25)}
+.sugg-chip b{color:#ffd166}
+.r.hist .hg{text-decoration:none}

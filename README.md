@@ -12,8 +12,9 @@ Serve Python con `requests` e `beautifulsoup4` (`pip install requests beautifuls
 ## Sezioni
 | Sezione | Cosa c'è |
 |---|---|
-| Giornata | prima del via: consigliati (👍) e loro formazione, che si bloccano al primo fischio d'inizio. Durante e dopo: fantavoti, bonus, sostituzioni automatiche (max 3), totale, proiezione e formazione ideale |
-| Storico | punteggio di ogni giornata giocata contro la stima pre-giornata, con grafico |
+| Giornata | la ⭐ squadra top della giornata (titolari e riserve). Dal primo fischio d'inizio: fantavoti, bonus, sostituzioni automatiche (max 3), totale, proiezione e formazione ideale |
+| Consigliati | la lista dei consigliati (👍) con titolari e panchina della squadra top, e 🎲 Le Scommesse: giocatori non da prima fascia che possono sorprendere, con la loro formazione. Tutto si blocca al primo fischio d'inizio |
+| Storico | punteggio di ogni giornata della squadra top e de Le Scommesse, contro la stima pre-giornata, con grafico |
 | Probabili | i due campi con le percentuali di titolarità, la colonna centrale con l'indice, panchina, ballottaggi, indisponibili, analisi e pronostico 1X2 |
 | Schierabilità | classifica per ruolo: titolarità, avversario, ultime 3, fattore partita, fantamedia attesa, indice e stelle |
 | Listone | tutti i giocatori con filtri per ruolo e squadra e colonne ordinabili; ☆ per aggiungerli alla rosa |
@@ -21,7 +22,6 @@ Serve Python con `requests` e `beautifulsoup4` (`pip install requests beautifuls
 | Serie A | classifica, calendario, risultati, marcatori e migliori fantavoti di ogni partita |
 | Squadre | formazione tipo sul campo, rendimento, gol per giornata, prossime avversarie e rosa completa |
 | Indisponibili | infortunati, squalificati, in dubbio e diffidati per squadra |
-| La mia rosa | inserisci la tua squadra: sceglie da sola il modulo e la formazione migliori |
 
 ## Come sono calcolati gli indici
 - **Fantamedia attesa**: 65% fantamedia stagionale (con poche presenze viene avvicinata alla media del ruolo) e 35% media delle ultime 3 giocate. Poi viene corretta in base ai gol fatti e subiti dall'avversario rispetto alla media del campionato e al fattore campo.

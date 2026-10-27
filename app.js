@@ -259,8 +259,8 @@ function lineChart(p) {
 
 // ================================================================ navigazione
 const PAGES = [
-  ["giornata", "🔴", "Giornata"], ["storico", "📜", "Storico"], ["probabili", "📋", "Probabili"], ["schierabilita", "⭐", "Schierabilità"], ["listone", "🗂️", "Listone"],
-  ["centro", "📊", "Centro Dati"], ["seriea", "🏆", "Serie A"], ["squadre", "🛡️", "Squadre"], ["indisponibili", "🚑", "Indisponibili"], ["rosa", "👕", "La mia rosa"],
+  ["giornata", "🔴", "Giornata"], ["consigliati", "👍", "Consigliati"], ["storico", "📜", "Storico"], ["probabili", "📋", "Probabili"], ["schierabilita", "⭐", "Schierabilità"], ["listone", "🗂️", "Listone"],
+  ["centro", "📊", "Centro Dati"], ["seriea", "🏆", "Serie A"], ["squadre", "🛡️", "Squadre"], ["indisponibili", "🚑", "Indisponibili"],
 ];
 function renderNav(cur) {
   $("#nav").innerHTML = `<div class="logo"><span>⚗️</span><span>Fanta<b>Bobby</b></span></div>` +
@@ -353,7 +353,7 @@ function pageListone() {
     <td>${p.last3.map(chipFv).join(" ")}</td>
     <td>${p.tit == null ? '<span class="dim">–</span>' : `<span class="chip ${lvl(p.tit)}">${p.tit}%</span>`}</td>
     <td>${idx(p, 1)}</td><td>${p.rating == null ? '<span class="dim">–</span>' : `<span class="chip ${lvl(p.rating)}">${p.rating}</span>`}</td>
-    <td>${consBtn(p.id)} <button class="xbtn" title="${ROSA.ids.includes(p.id) ? "Nella tua rosa" : "Aggiungi alla rosa"}" onclick="toggleRosa(${p.id})">${ROSA.ids.includes(p.id) ? "★" : "☆"}</button></td></tr>`).join("") || `<tr><td colspan="14" class="empty">Nessun giocatore</td></tr>`}
+    <td>${consBtn(p.id)} ${scomBtn(p.id)}</td></tr>`).join("") || `<tr><td colspan="14" class="empty">Nessun giocatore</td></tr>`}
   </tbody></table></div>`;
 }
 
@@ -498,13 +498,12 @@ function pageIndisponibili() {
   <div class="grid g3">${order.map(s => `<div class="panel pad"><h3>${tlink(s, 24)}</h3><div class="rows">${by[s].map(x => { const p = BY.get(x.id); return `<div class="r" data-pid="${x.id}" style="align-items:flex-start">${p ? av(p, 36) : ""}<div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;gap:6px"><b>${esc(x.nome)}</b><span class="chip ${x.c}" style="font-size:10.5px">${x.l}</span></div><div class="tip">${esc(x.nota)}</div></div></div>`; }).join("")}</div></div>`).join("") || '<div class="empty">Nessun indisponibile</div>'}</div>`;
 }
 
-// ---- la mia rosa
+// ---- squadre di giornata
 const MODULI = ["3-4-3", "3-5-2", "4-3-3", "4-4-2", "4-5-1", "5-3-2", "5-4-1"];
-let ROSA = { ids: [], xi: [], modulo: "3-4-3", q: "" };
 const needOf = modulo => { const [d, c, a] = modulo.split("-").map(Number); return { P: 1, D: d, C: c, A: a }; };
-// una "squadra" è { ids, xi, modulo }: la rosa ("rosa") o la formazione dei consigliati di una giornata ("g9")
-const squad = k => k === "rosa" ? ROSA : gSquad(+k.slice(1));
-function saveSquad(k) { if (k === "rosa") store.set("rosa", { ids: ROSA.ids, xi: ROSA.xi, modulo: ROSA.modulo }); else saveGiornate(); }
+// una "squadra" è { ids, xi, modulo }: "g9" = squadra top della giornata 9, "s9" = Le Scommesse della giornata 9
+const squad = k => k[0] === "s" ? gScom(+k.slice(1)) : gSquad(+k.slice(1));
+const saveSquad = () => saveGiornate();
 function addToXI(S, id) {
   const p = BY.get(id); if (!p) return false;
   const need = needOf(S.modulo), have = S.xi.filter(i => BY.get(i)?.R === p.R).length;
@@ -520,20 +519,9 @@ function fitXI(S) {
     inRole.slice(need[R]).forEach(id => { S.xi = S.xi.filter(i => i !== id); });
   }
 }
-function loadState() {
-  ROSA = { ids: [], modulo: "3-4-3", ...store.get("rosa", {}), q: "" };
-  if (!ROSA.xi) { ROSA.xi = []; ROSA.ids.forEach(id => addToXI(ROSA, id)); }   // rose salvate prima dei titolari scelti a mano
-  fitXI(ROSA);
-  OVR = store.get("ovr", {});
-  loadGiornate();
-}
-function addRosa(id) { if (soloLettura()) return; if (!ROSA.ids.includes(id)) { ROSA.ids.push(id); addToXI(ROSA, id); } ROSA.q = ""; saveSquad("rosa"); go(true); }
-function removeRosa(id) { if (soloLettura()) return; ROSA.ids = ROSA.ids.filter(i => i !== id); ROSA.xi = ROSA.xi.filter(i => i !== id); saveSquad("rosa"); go(true); }
-function toggleRosa(id) { ROSA.ids.includes(id) ? removeRosa(id) : addRosa(id); }
 // titolare <-> panchina; se la linea è piena entra al posto del titolare meno schierabile di quel ruolo
 function toggleXI(k, id) {
-  if (soloLettura()) return;
-  if (!editable(k)) return;
+  if (soloLettura() || !editable(k)) return;
   const S = squad(k);
   if (S.xi.includes(id)) S.xi = S.xi.filter(i => i !== id);
   else if (!addToXI(S, id)) {
@@ -544,7 +532,7 @@ function toggleXI(k, id) {
 }
 function setModulo(k, m) { if (soloLettura() || !editable(k)) return; const S = squad(k); S.modulo = m; fitXI(S); saveSquad(k); go(true); }
 function applyBest(k, m) { if (soloLettura() || !editable(k)) return; const S = squad(k); if (m) S.modulo = m; S.xi = bestXI(S.ids.map(id => BY.get(id)).filter(Boolean), S.modulo).xi.map(p => p.id); saveSquad(k); go(true); }
-const editable = k => k === "rosa" || !gLocked(+k.slice(1));
+const editable = k => !gLocked(+k.slice(1));
 function bestXI(players, modulo) {
   const [d, c, a] = modulo.split("-").map(Number), need = { P: 1, D: d, C: c, A: a };
   const pick = {}, bench = [];
@@ -552,40 +540,6 @@ function bestXI(players, modulo) {
   const xi = [...pick.P, ...pick.D, ...pick.C, ...pick.A];
   return { xi, bench: bench.sort((a, b) => b.schRaw - a.schRaw), total: sum(xi.map(p => p.schRaw)) };
 }
-function pageRosa() {
-  const mine = ROSA.ids.map(id => BY.get(id)).filter(Boolean);
-  const cnt = R => mine.filter(p => p.R === R).length;
-  const xi = ROSA.xi.map(id => BY.get(id)).filter(Boolean);
-  const bench = mine.filter(p => !ROSA.xi.includes(p.id)).sort((a, b) => b.schRaw - a.schRaw);
-  const best = MODULI.map(m => ({ m, ...bestXI(mine, m) })).sort((a, b) => b.total - a.total)[0];
-  const bestNow = bestXI(mine, ROSA.modulo), same = bestNow.xi.length === xi.length && bestNow.xi.every(p => ROSA.xi.includes(p.id));
-  const results = ROSA.q.length >= 2 ? P.filter(p => p.nome.toLowerCase().includes(ROSA.q) && !ROSA.ids.includes(p.id)).slice(0, 30) : [];
-  const row = p => { const t = ROSA.xi.includes(p.id); return `<div class="r"><span data-pid="${p.id}">${av(p, 36)}</span><div data-pid="${p.id}" style="flex:1;min-width:0"><b>${esc(p.nome)}</b> <span class="tip">${esc(tname(p.sq))}${p.nextOpp ? ` · ${p.nextOpp.home ? "vs" : "@"} ${esc(tname(p.nextOpp.opp))}` : ""}</span>${p.flag ? `<div style="color:var(--red);font-size:12px">● ${esc(p.flag.tipo)}</div>` : ""}</div><span class="chip ${lvl(p.tit)}">${p.tit ?? 0}%</span>${idx(p, 1)}<button class="xi-btn ${t ? "on" : ""}" title="${t ? "Manda in panchina" : "Metti titolare"}" onclick="toggleXI('rosa',${p.id})">${t ? "TIT" : "PAN"}</button><button class="xbtn" title="Rimuovi dalla rosa" onclick="removeRosa(${p.id})">×</button></div>`; };
-  const cons = gSquad(NEXT).ids.map(id => BY.get(id)).filter(Boolean).sort((a, b) => "PDCA".indexOf(a.R) - "PDCA".indexOf(b.R) || b.schRaw - a.schRaw);
-  const consPanel = `<div class="panel pad" style="margin-bottom:16px">
-    <h3>👍 Consigliati giornata ${NEXT} (${cons.length}) <span class="tip" style="text-transform:none">segnati con 👍 · la loro formazione è nella pagina <a href="#giornata/${NEXT}" style="color:var(--pink)">Giornata</a></span></h3>
-    ${cons.length ? `<div class="grid g3" style="gap:6px">${cons.map(p => { const inR = ROSA.ids.includes(p.id); return `<div class="r"><span data-pid="${p.id}">${av(p, 34)}</span><div data-pid="${p.id}" style="flex:1;min-width:0"><b>${esc(p.nome)}</b><div class="tip" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(tname(p.sq))}${p.nextOpp ? ` · ${p.nextOpp.home ? "vs" : "@"} ${esc(tname(p.nextOpp.opp))}` : ""}</div></div><span class="chip ${lvl(p.tit)}">${p.tit ?? 0}%</span>${idx(p, 1)}${inR ? `<span class="chip hi" title="Già nella tua rosa">✓ rosa</span>` : `<button class="add-btn" title="Aggiungi alla rosa" onclick="addRosa(${p.id})">+ Rosa</button>`}<button class="xbtn" title="Togli dai consigliati" onclick="toggleCons(${p.id})">×</button></div>`; }).join("")}</div>`
-      : `<div class="tip">Nessun consigliato. Nelle Probabili premi 👍 accanto a un giocatore per aggiungerlo qui.</div>`}
-  </div>`;
-  return title("La mia rosa", "Ogni giocatore va nel suo ruolo; quando la linea è piena finisce in panchina. Clicca TIT / PAN per scambiare.", "👕") + consPanel + `
-  <div class="grid split" style="--a:1fr;--b:1.15fr">
-    <div class="panel pad">
-      <h3>Rosa (${mine.length}) <span class="tip" style="text-transform:none">P ${cnt("P")} · D ${cnt("D")} · C ${cnt("C")} · A ${cnt("A")}</span></h3>
-      <input class="input" id="rq" placeholder="Aggiungi giocatore…" value="${esc(ROSA.q)}" oninput="ROSA.q=this.value.toLowerCase();go(true)" style="width:100%">
-      ${results.length ? `<div class="sel-list">${results.map(p => `<div onclick="addRosa(${p.id})">${av(p, 30)} <b>${esc(p.nome)}</b> <span class="muted">${esc(tname(p.sq))}</span><span class="spacer"></span><span class="muted">Qt ${p.qa ?? "–"}</span></div>`).join("")}</div>` : ""}
-      <div class="rows" style="margin-top:12px">${"PDCA".split("").map(R => mine.filter(p => p.R === R).sort((a, b) => ROSA.xi.includes(b.id) - ROSA.xi.includes(a.id) || b.schRaw - a.schRaw).map(row).join("")).join("") || '<div class="empty">Cerca e aggiungi i giocatori della tua squadra (anche dal Listone con ☆)</div>'}</div>
-    </div>
-    <div>
-      <div style="display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:6px;flex-wrap:wrap"><b style="font-size:19px">👥 La tua formazione</b><select class="input" onchange="setModulo('rosa',this.value)">${MODULI.map(m => `<option ${m === ROSA.modulo ? "selected" : ""}>${m}</option>`).join("")}</select><span class="tip">${xi.length}/11</span></div>
-      ${mine.length >= 11 ? `<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:8px">
-          ${!same ? `<button class="xi-auto" onclick="applyBest('rosa')">⚡ Formazione consigliata (${ROSA.modulo})</button>` : ""}
-          ${best && best.m !== ROSA.modulo ? `<button class="xi-auto alt" onclick="applyBest('rosa','${best.m}')">Modulo migliore: ${best.m}</button>` : ""}</div>` : ""}
-      ${pitch(ROSA.modulo, xi.map(p => ({ id: p.id, nome: p.nome })), { byRole: true })}
-      <div class="h2">Panchina in ordine</div><div class="rows">${bench.map((p, i) => `<div class="r"><span class="dim num">${i + 1}</span><span data-pid="${p.id}">${av(p, 30)}</span><span style="flex:1" data-pid="${p.id}">${esc(p.nome)}</span><span class="chip ${lvl(p.tit)}">${p.tit ?? 0}%</span>${idx(p, 1)}<button class="xi-btn" title="Metti titolare" onclick="toggleXI('rosa',${p.id})">PAN</button></div>`).join("") || '<div class="tip">Nessuno in panchina</div>'}</div>
-    </div>
-  </div>`;
-}
-
 // ---- scheda giocatore
 function openPlayer(id) {
   const p = BY.get(id); if (!p) return;
@@ -623,7 +577,7 @@ function openPlayer(id) {
       ${METRICS.filter(x => x[2].includes(p.R)).map(([k, l]) => `<div class="prow"><div class="l">${l}<small>${raw[k]}</small></div><div class="pbar ${tlvl(p.pct[k] ?? 0)}"><i style="width:${p.pct[k] ?? 0}%"></i></div><div class="v" style="color:${p.pct[k] >= 66 ? "var(--green)" : p.pct[k] >= 40 ? "var(--gold)" : "var(--red)"}">${p.pct[k] ?? "–"}</div></div>`).join("")}
       ${p.rating != null ? `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"><b>Rating complessivo</b><span class="chip ${lvl(p.rating)}" style="font-size:16px;height:32px;min-width:46px">${p.rating}</span></div>` : ""}
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px">${consBtn(p.id, 1)}
-      <button class="btn-pink" style="font-size:13px;padding:10px 16px" onclick="toggleRosa(${p.id});openPlayer(${p.id})">${ROSA.ids.includes(p.id) ? "★ Nella tua rosa (togli)" : "☆ Aggiungi alla mia rosa"}</button></div>
+      ${scomBtn(p.id, 1)}</div>
     </div>
   </div>`;
   $("#modal").classList.add("show");
@@ -659,9 +613,10 @@ function closeModal() { $("#modal").classList.remove("show"); }
 // ================================================================ router ed eventi
 function go(keep) {
   const fid = keep && document.activeElement?.id, pos = fid && document.activeElement.selectionStart, y = window.scrollY;
-  const [page, arg] = (location.hash.slice(1) || "probabili").split("/");
+  let [page, arg] = (location.hash.slice(1) || "probabili").split("/");
+  if (page === "rosa") page = "consigliati";   // vecchio nome della pagina
   renderNav(PAGES.some(x => x[0] === page) ? page : "probabili");
-  const V = { giornata: () => pageGiornata(arg), storico: pageStorico, probabili: () => pageProbabili(arg), schierabilita: pageSchierabilita, listone: pageListone, centro: pageCentro, seriea: pageSerieA, squadre: () => pageSquadre(arg), indisponibili: pageIndisponibili, rosa: pageRosa }[page] || (() => pageProbabili(arg));
+  const V = { giornata: () => pageGiornata(arg), storico: pageStorico, probabili: () => pageProbabili(arg), schierabilita: pageSchierabilita, listone: pageListone, centro: pageCentro, seriea: pageSerieA, squadre: () => pageSquadre(arg), indisponibili: pageIndisponibili, consigliati: () => pageConsigliati(arg), rosa: () => pageConsigliati(arg) }[page] || (() => pageProbabili(arg));
   $("#view").innerHTML = V();
   if (fid) { const el = document.getElementById(fid); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch {} } }
   window.scrollTo(0, keep ? y : 0);
@@ -695,6 +650,9 @@ if (!D) {
 // avvio chiamato da cloud.js (dopo l'accesso, se il sito è online)
 function bootApp() {
   if (!D) return;
-  loadState(); buildModel(); computePct(2); go();
+  OVR = store.get("ovr", {});            // i valori manuali servono già per calcolare le stime
+  buildModel(); computePct(2);
+  loadGiornate();                        // le squadre di giornata usano le stime appena calcolate
+  go();
   startAutoRefresh();
 }
