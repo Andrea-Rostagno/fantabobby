@@ -29,12 +29,13 @@ function loadGiornate() {
   // la vecchia "La mia rosa" diventa Le Scommesse della prossima giornata
   const rosa = store.get("rosa", null);
   if (rosa?.ids?.length && libera && !GIORN[NEXT]?.sc?.ids?.length) {
-    const S = gScom(NEXT); S.ids = rosa.ids.filter(id => BY.get(id)); S.modulo = rosa.modulo || S.modulo;
+    const S = gScom(NEXT); S.ids = rosa.ids.filter(id => BY.get(id)); S.modulo = MODULI.includes(rosa.modulo) ? rosa.modulo : S.modulo;
     S.xi = (rosa.xi || []).filter(id => S.ids.includes(id));
     S.ids.filter(id => !S.xi.includes(id)).forEach(id => addToXI(S, id));   // posti liberi: titolari
   }
   for (const [g, S] of Object.entries(GIORN)) for (const X of [S, S.sc].filter(Boolean)) {
     X.snap ??= {}; X.xi ??= [];
+    if (!MODULI.includes(X.modulo)) X.modulo = "3-4-3";   // il modulo finisce nella pagina: solo valori previsti
     if (!gLocked(+g)) fitXI(X);
   }
   if (old || rosa) { saveGiornate(); try { localStorage.removeItem("fd-cons"); localStorage.removeItem("fd-rosa"); } catch {} }
