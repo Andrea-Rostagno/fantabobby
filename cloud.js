@@ -1,5 +1,5 @@
 "use strict";
-// Accesso e salvataggio online con Supabase. Se config.js è vuoto, FantaBobby salva solo nel browser.
+// Accesso e salvataggio online con Supabase. Se config.js è vuoto, FantaBar salva solo nel browser.
 (function () {
   const cfg = window.FB_CONFIG || {};
   const online = !!(cfg.url && cfg.key && window.supabase);
@@ -78,7 +78,7 @@
   function mostraLogin(msg = "") {
     document.body.insertAdjacentHTML("beforeend", `<div class="login" id="login">
       <form class="panel pad" onsubmit="fbLogin(event)">
-        <div class="logo" style="font-size:30px"><span>⚗️</span><span>Fanta<b>Bobby</b></span></div>
+        <div class="logo" style="font-size:30px"><img class="logo-img" src="logo.png" alt=""><span>Fanta<b>Bar</b></span></div>
         <p class="tip" style="text-align:center;margin-top:0">Accedi per vedere consigliati, formazioni e storico</p>
         <input class="input" type="email" id="lemail" placeholder="Email" autocomplete="username" required>
         <input class="input" type="password" id="lpass" placeholder="Password" autocomplete="current-password" required>

@@ -263,7 +263,7 @@ const PAGES = [
   ["centro", "📊", "Centro Dati"], ["seriea", "🏆", "Serie A"], ["squadre", "🛡️", "Squadre"], ["indisponibili", "🚑", "Indisponibili"],
 ];
 function renderNav(cur) {
-  $("#nav").innerHTML = `<div class="logo"><span>⚗️</span><span>Fanta<b>Bobby</b></span></div>` +
+  $("#nav").innerHTML = `<div class="logo"><img class="logo-img" src="logo.png" alt=""><span>Fanta<b>Bar</b></span></div>` +
     PAGES.map(([k, ic, l]) => `<a href="#${k}" class="tile-nav ${cur === k ? "on" : ""}"><span class="ic">${ic}</span>${l}</a>`).join("") +
     `<div class="foot">Dati fantacalcio.it<br>${esc(D?.aggiornato || "")}</div>`;
   $("#upd").innerHTML = D ? `Serie A ${esc(D.stagione)} · giornata ${NEXT}<br>aggiornato ${esc(D.aggiornato)}` : "";

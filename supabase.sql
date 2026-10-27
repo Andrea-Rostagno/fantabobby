@@ -1,4 +1,4 @@
--- FantaBobby: da incollare una volta in Supabase → SQL Editor → Run.
+-- FantaBar: da incollare una volta in Supabase → SQL Editor → Run.
 -- Una riga per account con rosa, consigliati/formazioni di ogni giornata e valori modificati a mano.
 create table if not exists public.stato (
   user_id    uuid primary key references auth.users (id) on delete cascade,

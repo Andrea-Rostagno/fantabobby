@@ -1,4 +1,4 @@
-# FantaBobby
+# FantaBar
 
 Dashboard per il fantacalcio in stile FantaLab, con i dati pubblici di fantacalcio.it.
 
